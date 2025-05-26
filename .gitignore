@@ -1,0 +1,75 @@
+# Terraform
+.terraform
+.terraform.lock.hcl
+deploy/*.json
+deploy/*.out
+
+# OSX
+.DS_Store
+
+# VisualStudio Code
+.vscode/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Sphinx documentation
+docs/_build/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+#Archives
+*.zip
+*.rar
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Local CICD file
+.github/workflows/local_cicd.yaml
+
+# Compiled 
+__pycache__/
+
+#Database
+*.sql
+
+#Models
+*.joblib
+*.pkl
