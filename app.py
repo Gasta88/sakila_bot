@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 from utils import (load_kpi_definitions, get_database_schema,
-                  query_premsql, execute_sql, visualize_schema)
+                  query_premsql, execute_sql)
 
 def main():
     st.set_page_config(layout="wide", page_title="Database Query Assistant")
@@ -31,8 +31,6 @@ def main():
         # Create sidebar with schema visualization
         with st.sidebar:
             st.subheader("Database Schema")
-            # schema_fig = visualize_schema(connection)
-            # st.pyplot(schema_fig)
             image_path = "docs/schema.png"
             st.image(image_path)
 

@@ -1,7 +1,5 @@
 import subprocess
 import pandas as pd
-import networkx as nx
-import matplotlib.pyplot as plt
 
 # Function to load KPI definitions from markdown
 def load_kpi_definitions(markdown_path):
@@ -137,45 +135,3 @@ def get_database_schema(connection):
 
     cursor.close()
     return "\n".join(schema)
-
-# Function to visualize schema
-def visualize_schema(connection):
-    # Get tables and their relationships
-    cursor = connection.cursor()
-
-    # Get all tables
-    cursor.execute("SHOW TABLES")
-    tables = [table[0] for table in cursor.fetchall()]
-
-    # Build a graph structure for visualization
-    G = nx.DiGraph()
-
-    # Add tables as nodes
-    for table in tables:
-        G.add_node(table)
-
-    # Add foreign key relationships as edges
-    for table in tables:
-        cursor.execute(f"""
-            SELECT TABLE_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
-            FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-            WHERE TABLE_SCHEMA = 'sakila'
-            AND TABLE_NAME = '{table}'
-            AND REFERENCED_TABLE_NAME IS NOT NULL
-        """)
-        relationships = cursor.fetchall()
-
-        for rel in relationships:
-            source_table = rel[0]
-            target_table = rel[2]
-            G.add_edge(source_table, target_table)
-
-    # Create the visualization
-    fig, ax = plt.subplots(figsize=(10, 6))
-    pos = nx.spring_layout(G, seed=42)  # For consistent layout
-    nx.draw(G, pos, with_labels=True, node_color='skyblue',
-            node_size=2000, arrowsize=15, ax=ax, font_size=8)
-
-    # Return the figure for Streamlit
-    cursor.close()
-    return fig
