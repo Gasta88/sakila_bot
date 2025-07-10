@@ -13,17 +13,23 @@ def load_kpi_definitions(markdown_path):
 # Function to query PremSQL LLM via Ollama
 def query_premsql(user_query, db_schema, kpi_definitions):
     # Construct the prompt with database schema and KPI context
+    
+    # And these business KPI definitions:
+    # {kpi_definitions}
     prompt = f"""
     You are a SQL expert assistant that helps convert natural language queries into SQL.
+    Adhere to these rules:
+    - **Deliberately go through the question and database schema word by word** to appropriately answer the question
+    - **Use Table Aliases** to prevent ambiguity. For example, `SELECT table1.col1, table2.col1 FROM table1 JOIN table2 ON table1.id = table2.id`.
+    - When creating a ratio, always cast the numerator as float
 
+    ###Input:
     Given the following MySQL database schema:
     {db_schema}
-
-    And these business KPI definitions:
-    {kpi_definitions}
-
+    
     Convert this question into a valid MySQL query: "{user_query}"
 
+    ###Output:
     Respond in this format:
     ```sql
     [YOUR SQL QUERY HERE]
@@ -35,8 +41,10 @@ def query_premsql(user_query, db_schema, kpi_definitions):
 
     # Call Ollama with PremSQL model
     try:
-        cmd = ["ollama", "run", "anindya/prem1b-sql-ollama-fp116:latest", prompt]
+        # cmd = ["ollama", "run", "anindya/prem1b-sql-ollama-fp116:latest", prompt]
+        cmd = ["ollama", "run", "sqlcoder:7b", prompt]
         result = subprocess.run(cmd, capture_output=True, text=True)
+        print("Result:", result)
 
         # Extract SQL from the response
         response = result.stdout
@@ -45,6 +53,7 @@ def query_premsql(user_query, db_schema, kpi_definitions):
         print("SQL Query:", sql_query)
         explanation = extract_explanation_from_response(response)
         print("Explanation:", explanation)
+        print(response)
         return sql_query, explanation, response
     except Exception as e:
         return "", f"Error calling PremSQL via Ollama: {str(e)}", str(e)
@@ -99,23 +108,15 @@ def get_database_schema(connection):
     # For each table, get columns and their types
     for table in tables:
         table_name = table[0]
-        cursor.execute(f"DESCRIBE {table_name}")
-        columns = cursor.fetchall()
 
-        table_schema = f"Table: {table_name}\n"
-        table_schema += "Columns:\n"
-
-        for column in columns:
-            column_name = column[0]
-            column_type = column[1]
-            is_nullable = "NULL" if column[2] == "YES" else "NOT NULL"
-            key = column[3] if column[3] else ""
-            table_schema += f"  - {column_name} ({column_type}) {is_nullable} {key}\n"
+        # Get CREATE TABLE DDL statement
+        cursor.execute(f"SHOW CREATE TABLE {table_name}")
+        create_table = cursor.fetchone()[1]
 
         # Get foreign keys
         cursor.execute(f"""
             SELECT
-                COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
+                CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
             FROM
                 INFORMATION_SCHEMA.KEY_COLUMN_USAGE
             WHERE
@@ -126,12 +127,13 @@ def get_database_schema(connection):
 
         foreign_keys = cursor.fetchall()
 
+        foreign_key_str = ""
         if foreign_keys:
-            table_schema += "Foreign Keys:\n"
+            foreign_key_str = "\n"
             for fk in foreign_keys:
-                table_schema += f"  - {fk[0]} -> {fk[1]}({fk[2]})\n"
+                foreign_key_str += f"  , FOREIGN KEY ({fk[1]}) REFERENCES {fk[2]}({fk[3]})\n"
 
-        schema.append(table_schema)
+        schema.append(f"{create_table}{foreign_key_str}")
 
     cursor.close()
     return "\n".join(schema)

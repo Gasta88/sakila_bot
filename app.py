@@ -47,9 +47,8 @@ def main():
 
         with col1:
             user_query = st.text_area("Enter your question:",
-                              "Show me the top 5 most profitable movies",
-                              height=100)
-
+                          value=st.session_state.get('user_query', "Show me the top 5 most profitable movies"),
+                          height=100)
         with col2:
             st.write("Example Queries:")
             example_queries = [
@@ -71,7 +70,6 @@ def main():
                 sql_query, explanation, full_response = query_premsql(
                     user_query, db_schema, kpi_definitions
                 )
-
                 # Display the generated SQL
                 st.subheader("Generated SQL Query")
                 st.code(sql_query, language="sql")
@@ -95,7 +93,7 @@ def main():
                         st.subheader("Query Results")
                         st.dataframe(results, use_container_width=True)
 
-                        # Display explanation
+                        # # Display explanation
                         st.subheader("Explanation")
                         st.markdown(explanation)
 
@@ -110,7 +108,7 @@ def main():
                 else:
                     st.error("Could not generate SQL from your query.")
 
-                # Debug view (collapsible)
+                # # Debug view (collapsible)
                 with st.expander("View full LLM response"):
                     st.text(full_response)
 
