@@ -6,13 +6,11 @@ if ! docker ps | grep -q "sakila"; then
     docker start sakila || docker run -d -p 3306:3306 --name sakila sakiladb/mysql
 fi
 
-# Make sure Ollama is running with PremSQL model
-echo "Checking if Ollama has PremSQL model..."
-# if ! ollama list | grep -q "prem1b"; then
+# Make sure Ollama is running with Llama3.2 model
+echo "Checking if Ollama has Llama3.2 model..."
 if ! ollama list | grep -q "sqlcoder"; then
-    echo "Downloading PremSQL model..."
-    # ollama pull anindya/prem1b-sql-ollama-fp116:latest
-    ollama pull sqlcoder:7b
+    echo "Downloading Llama3.2 model..."
+    ollama pull llama3.2
 fi
 
 # Start the Streamlit app

@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 from utils import (load_kpi_definitions, get_database_schema,
-                  query_premsql, execute_sql)
+                  query_sqlcoder, execute_sql)
 
 def main():
     st.set_page_config(layout="wide", page_title="Database Query Assistant")
@@ -67,7 +67,10 @@ def main():
         if st.button("Run Query", type="primary"):
             with st.spinner("Processing your query..."):
                 # Get SQL from LLM
-                sql_query, explanation, full_response = query_premsql(
+                # sql_query, explanation, full_response = query_sqlcoder(
+                #     user_query, db_schema, kpi_definitions
+                # )
+                sql_query, full_response = query_sqlcoder(
                     user_query, db_schema, kpi_definitions
                 )
                 # Display the generated SQL
@@ -94,8 +97,8 @@ def main():
                         st.dataframe(results, use_container_width=True)
 
                         # # Display explanation
-                        st.subheader("Explanation")
-                        st.markdown(explanation)
+                        # st.subheader("Explanation")
+                        # st.markdown(explanation)
 
                         # Option to download results
                         csv = results.to_csv(index=False)
