@@ -67,9 +67,6 @@ def main():
         if st.button("Run Query", type="primary"):
             with st.spinner("Processing your query..."):
                 # Get SQL from LLM
-                # sql_query, explanation, full_response = query_sqlcoder(
-                #     user_query, db_schema, kpi_definitions
-                # )
                 sql_query, full_response = query_sqlcoder(
                     user_query, db_schema, kpi_definitions
                 )
@@ -95,10 +92,6 @@ def main():
                         # Display results in a table
                         st.subheader("Query Results")
                         st.dataframe(results, use_container_width=True)
-
-                        # # Display explanation
-                        # st.subheader("Explanation")
-                        # st.markdown(explanation)
 
                         # Option to download results
                         csv = results.to_csv(index=False)

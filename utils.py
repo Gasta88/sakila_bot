@@ -3,6 +3,19 @@ import pandas as pd
 
 # Function to load KPI definitions from markdown
 def load_kpi_definitions(markdown_path):
+    """
+    Loads KPI definitions from a markdown file.
+    
+    Parameters
+    ----------
+    markdown_path : str
+        The path to the markdown file containing the KPI definitions.
+    
+    Returns
+    -------
+    str
+        The KPI definitions as a string of markdown.
+    """
     try:
         with open(markdown_path, 'r') as file:
             kpi_definitions = file.read()
@@ -12,10 +25,24 @@ def load_kpi_definitions(markdown_path):
 
 # Function to query Llama3.2 LLM via Ollama
 def query_sqlcoder(user_query, db_schema, kpi_definitions):
-    # Construct the prompt with database schema and KPI context
+    """
+    Queries the Llama3.2 LLM via Ollama to generate a SQL query based on the user's natural language query, database schema, and KPI definitions.
+
+    Parameters
+    ----------
+    user_query : str
+        The natural language query from the user.
+    db_schema : str
+        The database schema as a string.
+    kpi_definitions : str
+        The KPI definitions as a string of markdown.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the generated SQL query, the explanation from the LLM, and the raw response from the LLM.
+    """
     
-    # And these business KPI definitions:
-    # {kpi_definitions}
     prompt = f"""
     ### Instructions:
     You are a SQL expert assistant that helps convert natural language queries into SQL.
@@ -56,7 +83,18 @@ def query_sqlcoder(user_query, db_schema, kpi_definitions):
 
 # Function to extract SQL from LLM response
 def extract_sql_from_response(response):
-    # Look for SQL between markdown code blocks
+    """
+    Extract SQL from LLM response.
+
+    Look for SQL between markdown code blocks. If there's a specific SQL block with
+    triple backticks, extract the SQL. Otherwise, fall back to the first code block.
+
+    Args:
+        response (str): The response from the LLM.
+
+    Returns:
+        str: The extracted SQL query.
+    """
     if "```sql" in response and "```" in response.split("```sql")[1]:
         return response.split("```sql")[1].split("```")[0].strip()
     elif "```" in response:
@@ -66,22 +104,37 @@ def extract_sql_from_response(response):
             return code_blocks[1].strip()
     return ""
 
-# Function to extract explanation from LLM response
-def extract_explanation_from_response(response):
-    if "Explanation:" in response:
-        explanation = response.split("Explanation:")[1].strip()
-        # Remove any remaining markdown code blocks
-        explanation = explanation.replace("```", "")
-        return explanation
-    # Fallback if no explanation section found
-    if "```" in response:
-        parts = response.split("```")
-        if len(parts) > 2:
-            return parts[2].strip()
-    return response
+# # Function to extract explanation from LLM response
+# def extract_explanation_from_response(response):
+#     if "Explanation:" in response:
+#         explanation = response.split("Explanation:")[1].strip()
+#         # Remove any remaining markdown code blocks
+#         explanation = explanation.replace("```", "")
+#         return explanation
+#     # Fallback if no explanation section found
+#     if "```" in response:
+#         parts = response.split("```")
+#         if len(parts) > 2:
+#             return parts[2].strip()
+#     return response
 
 # Function to execute SQL and return results
 def execute_sql(sql_query, connection):
+    """
+    Executes a SQL query against a database connection and returns the results as a Pandas DataFrame.
+
+    Parameters
+    ----------
+    sql_query : str
+        The SQL query to execute.
+    connection : mysql.connector.MySQLConnection
+        The database connection to use.
+
+    Returns
+    -------
+    pd.DataFrame or str
+        The results of the query as a Pandas DataFrame, or an error message if the query fails.
+    """
     try:
         cursor = connection.cursor(dictionary=True)
         cursor.execute(sql_query)
@@ -93,6 +146,25 @@ def execute_sql(sql_query, connection):
 
 # Function to get database schema
 def get_database_schema(connection):
+    """
+    Retrieves the schema of the database as a string.
+
+    This function connects to the given database and retrieves the schema
+    information for each table, including the CREATE TABLE DDL statements 
+    and any foreign key constraints.
+
+    Parameters
+    ----------
+    connection : mysql.connector.MySQLConnection
+        The database connection to use.
+
+    Returns
+    -------
+    str
+        A string representation of the database schema, including table 
+        creation statements and foreign key definitions.
+    """
+
     cursor = connection.cursor()
 
     # Get tables
