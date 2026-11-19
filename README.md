@@ -1,5 +1,10 @@
 # Sakila Database Query Assistant
 
+[![CI](https://github.com/Gasta88/sakila_bot/actions/workflows/ci.yml/badge.svg)](https://github.com/Gasta88/sakila_bot/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+![Sakila schema](docs/schema.png)
+
 ## Overview
 
 The Sakila Database Query Assistant is an intelligent web application that allows users to query the MySQL Sakila
@@ -22,6 +27,8 @@ writing SQL queries, making database analysis accessible to non-technical stakeh
 - **Result Export**: Download query results as CSV files
 - **Error Handling**: Comprehensive error reporting and debugging information
 - **Example Queries**: Pre-built example queries to get users started
+- **Read-Only SQL Allowlist**: Generated SQL is parsed before execution; only a
+        single `SELECT`/`WITH`/`UNION` statement is accepted, with a forced row cap
 
 ## Architecture
 
@@ -39,7 +46,7 @@ Before running the application, ensure you have the following components install
 
 ### System Requirements
 
-- Python 3.7 or higher
+- Python 3.11 or higher
 - Docker (for Sakila database container)
 - Ollama (for Llama3.2 model)
 - Minimum 8GB RAM recommended
@@ -62,11 +69,14 @@ Before running the application, ensure you have the following components install
 
     pip install -r requirements.txt
 
-The requirements.txt includes:
+Dependencies are pinned in `requirements.txt`:
 
 - `streamlit` - Web application framework
 - `mysql-connector-python` - MySQL database connector
 - `pandas` - Data manipulation and analysis
+- `sqlglot` - SQL parser used by the read-only allowlist
+
+For development and tests, also install `requirements-dev.txt` (pytest + ruff).
 
 ### Step 3: Set Up Docker and Sakila Database
 
@@ -109,6 +119,19 @@ The application connects to MySQL using the following default configuration:
 - **Database**: sakila
 - **Username**: sakila
 - **Password**: p\_ssW0rd
+
+Every value can be overridden with an environment variable, which avoids editing
+code for a different container:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SAKILA_DB_HOST` | `localhost` | MySQL host |
+| `SAKILA_DB_PORT` | `3306` | MySQL port |
+| `SAKILA_DB_USER` | `sakila` | MySQL user |
+| `SAKILA_DB_PASSWORD` | `p_ssW0rd` | MySQL password |
+| `SAKILA_DB_NAME` | `sakila` | Database name |
+| `SAKILA_MAX_ROWS` | `1000` | Hard cap applied to every generated query |
+| `OLLAMA_TIMEOUT` | `120` | Seconds to wait for the local model |
 
 **Note**: These credentials are for the sample Sakila database container. In production environments,
       ensure proper security measures and credential management.
@@ -183,10 +206,15 @@ Each query execution provides detailed debugging information including:
 | File | Purpose | Description |
 | --- | --- | --- |
 | `app.py` | Main Application | Streamlit web interface, database connectivity, user interaction handling |
-| `utils.py` | Utility Functions | LLM integration, SQL processing, database schema extraction |
+| `utils.py` | Utility Functions | LLM integration, SQL validation and execution, database schema extraction |
 | `kpi_definitions.md` | Business Metrics | Predefined KPI definitions for business intelligence |
-| `requirements.txt` | Dependencies | Python package requirements for the application |
+| `requirements.txt` | Dependencies | Pinned Python package requirements for the application |
+| `requirements-dev.txt` | Dev Dependencies | Pinned lint and test tooling |
 | `run.sh` | Startup Script | Automated setup and launch script for Docker and Ollama |
+| `test/unit/` | Tests | Mocked unit tests for utilities and the SQL allowlist |
+| `docs/schema.png` | Diagram | Sakila entity-relationship diagram shown in the UI |
+| `.github/workflows/ci.yml` | CI | Ruff lint and pytest on every push and pull request |
+| `LICENSE` | License | MIT |
 
 ## Technical Implementation Details
 
@@ -204,8 +232,11 @@ The application uses Llama3.2 model via Ollama with a carefully crafted prompt t
 1. **Context Preparation**: Combine user query with database schema and KPI definitions
 2. **LLM Processing**: Send structured prompt to Llama3.2 model
 3. **Response Parsing**: Extract SQL code from markdown-formatted response
-4. **Query Validation**: Basic syntax and structure validation
-5. **Execution**: Run validated query against MySQL database
+4. **Query Validation**: `utils.validate_sql` parses the statement with sqlglot and only
+   accepts a single read-only `SELECT`/`WITH`/`UNION` query. DDL, DML, locking clauses,
+   file/sleep functions and multi-statement input are rejected, and a `LIMIT` cap
+   (`SAKILA_MAX_ROWS`, default 1000) is enforced.
+5. **Execution**: Run the validated query against MySQL over a best-effort read-only session
 
 ### Error Handling
 
@@ -257,11 +288,37 @@ The application implements comprehensive error handling for:
 - **Database Queries**: Monitor complex queries for performance impact
 - **Session Management**: Clear query history periodically for optimal performance
 
+## Testing and CI
+
+The unit tests mock MySQL and Ollama, so no services are required:
+
+    pip install -r requirements-dev.txt
+    ruff check .
+    pytest -q
+
+`test/unit/test_utils.py` covers schema extraction, LLM response parsing, the
+normalised `(sql, response)` contract, and the SQL allowlist — including a test
+that proves `DROP TABLE` is rejected. CI runs the same two commands on Python 3.11
+for every push to `main` and every pull request.
+
+The tests do not require Docker or Ollama; running the Streamlit UI does.
+
+## License
+
+Released under the [MIT License](LICENSE).
+
 ## Security Considerations
 
-This application is designed for development and demonstration purposes. For production deployment, consider:
+This application is a demonstration project. The following controls are implemented:
 
-- **Database Security**: Use secure credentials and connection encryption
-- **Input Validation**: Implement additional SQL injection protection
-- **Access Control**: Add authentication and authorization mechanisms
-- **Network Security**: Restrict database access to authorized networks
+- **Read-only SQL allowlist**: generated SQL is parsed with sqlglot before execution;
+  only one `SELECT`/`WITH`/`UNION` statement is accepted, DDL/DML and multi-statement
+  input are rejected, and a row cap is always applied (`utils.validate_sql`).
+- **Read-only session**: the MySQL session is switched to read-only on connect as a
+  second line of defence (`utils.enforce_read_only_session`).
+- **Configurable credentials**: connection settings can be supplied via environment
+  variables instead of editing source.
+
+Still out of scope for this demo: authentication/authorization, network restrictions,
+and connection encryption. Use a dedicated read-only database user if you deploy it
+beyond the local Sakila container.
