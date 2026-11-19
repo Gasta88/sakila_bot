@@ -1,9 +1,3 @@
-# Terraform
-.terraform
-.terraform.lock.hcl
-deploy/*.json
-deploy/*.out
-
 # OSX
 .DS_Store
 
@@ -40,6 +34,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+.ruff_cache/
 
 # Sphinx documentation
 docs/_build/
@@ -47,6 +42,7 @@ docs/_build/
 # Environments
 .env
 .venv
+.venv*/
 env/
 venv/
 ENV/
@@ -61,13 +57,10 @@ venv.bak/
 .ipynb_checkpoints
 *.ipynb
 
-# Local CICD file
-.github/workflows/local_cicd.yaml
-
-# Compiled 
+# Compiled
 __pycache__/
 
-#Database
+#Database dumps
 *.sql
 
 #Models
